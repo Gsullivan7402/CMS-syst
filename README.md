@@ -45,7 +45,8 @@ Usage
 
 Screenshots
 
-[Insert screenshots here if applicable]
+Annotation 2024-02-21 161248.png
+
 Dependencies
 
     Inquirer: A collection of common interactive command line user interfaces.

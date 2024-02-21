@@ -35,9 +35,9 @@ function mainMenu(inquirer) {
         'Add a role',
         'Add an employee',
         'Update an employee role',
-        'Delete a department', // Newly added option
-        'Delete a role',       // Newly added option
-        'Delete an employee',  // Newly added option
+        'Delete a department', 
+        'Delete a role',       
+        'Delete an employee',  
         'Exit'
       ],
     }
