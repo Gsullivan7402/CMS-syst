@@ -41,25 +41,25 @@ function mainMenu(inquirer) {
   ]).then((answers) => {
     switch(answers.action) {
       case 'View all departments':
-        viewAllDepartments();
+        viewAllDepartments(inquirer); // Pass inquirer here
         break;
       case 'View all roles':
-        viewAllRoles();
+        viewAllRoles(inquirer); // Pass inquirer here
         break;
       case 'View all employees':
-        viewAllEmployees();
+        viewAllEmployees(inquirer); // Pass inquirer here
         break;
       case 'Add a department':
-        addDepartment(inquirer);
+        addDepartment(inquirer); // Already correct
         break;
       case 'Add a role':
-        addRole(inquirer);
+        addRole(inquirer); // Already correct
         break;
       case 'Add an employee':
-        addEmployee(inquirer);
+        addEmployee(inquirer); // Already correct
         break;
       case 'Update an employee role':
-        updateEmployeeRole(inquirer);
+        updateEmployeeRole(inquirer); // Already correct
         break;
       case 'Exit':
         console.log('Exiting the application.');
@@ -67,14 +67,16 @@ function mainMenu(inquirer) {
         break;
       default:
         console.error('Invalid option selected.');
-        mainMenu(inquirer); // Show the menu again for invalid options
+        mainMenu(inquirer); // Ensure inquirer is passed back for retries
     }
   }).catch(error => {
     console.error('Error:', error);
+    mainMenu(inquirer); // Ensure inquirer is passed back in case of error
   });
 }
 
-function viewAllDepartments() {
+
+function viewAllDepartments(inquirer) {
   const query = `SELECT * FROM department`;
   connection.query(query, (err, res) => {
     if (err) throw err;
@@ -84,7 +86,7 @@ function viewAllDepartments() {
   });
 }
 
-function viewAllRoles() {
+function viewAllRoles(inquirer) {
   const query = `SELECT role.id, role.title, department.name AS department, role.salary FROM role JOIN department ON role.department_id = department.id`;
   connection.query(query, (err, res) => {
     if (err) throw err;
@@ -94,7 +96,7 @@ function viewAllRoles() {
   });
 }
 
-function viewAllEmployees() {
+function viewAllEmployees(inquirer) {
   const query = `
     SELECT e.id, e.first_name, e.last_name, role.title, department.name AS department, role.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager
     FROM employee e
@@ -110,7 +112,7 @@ function viewAllEmployees() {
   });
 }
 
-function addDepartment() {
+function addDepartment(inquirer) {
   inquirer.prompt([
     {
       type: 'input',
@@ -120,14 +122,19 @@ function addDepartment() {
   ]).then(answer => {
     const query = 'INSERT INTO department (name) VALUES (?)';
     connection.query(query, [answer.departmentName], (err, res) => {
-      if (err) throw err;
+      if (err) {
+        console.error('Error adding department:', err);
+        return mainMenu(inquirer); // Return to the main menu if an error occurs
+      }
       console.log(`${answer.departmentName} department added successfully.`);
-      mainMenu();
+      mainMenu(inquirer);
     });
   }).catch(error => {
-    console.error('Error adding department:', error);
+    console.error('Error during the department addition process:', error);
+    mainMenu(inquirer);
   });
 }
+
 
 function addRole(inquirer) {
   // Fetch departments to let the user choose one for the new role
@@ -242,4 +249,62 @@ function addEmployee(inquirer) {
   });
 }
 
+function updateEmployeeRole(inquirer) {
+  // Fetch all employees to allow the user to choose one
+  connection.query('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', (err, employees) => {
+    if (err) {
+      console.error('Error fetching employees:', err);
+      return mainMenu(inquirer);
+    }
+
+    inquirer.prompt([
+      {
+        type: 'list',
+        name: 'employeeId',
+        message: 'Which employee\'s role do you want to update?',
+        choices: employees.map(employee => ({
+          name: employee.name,
+          value: employee.id
+        }))
+      }
+    ]).then(employeeAnswer => {
+      // Fetch all roles for the next prompt
+      connection.query('SELECT id, title FROM role', (err, roles) => {
+        if (err) {
+          console.error('Error fetching roles:', err);
+          return mainMenu(inquirer);
+        }
+
+        inquirer.prompt([
+          {
+            type: 'list',
+            name: 'roleId',
+            message: 'What is the new role?',
+            choices: roles.map(role => ({
+              name: role.title,
+              value: role.id
+            }))
+          }
+        ]).then(roleAnswer => {
+          // Update the employee's role
+          const query = 'UPDATE employee SET role_id = ? WHERE id = ?';
+          connection.query(query, [roleAnswer.roleId, employeeAnswer.employeeId], (err, res) => {
+            if (err) {
+              console.error('Error updating employee role:', err);
+              return mainMenu(inquirer);
+            }
+            console.log('Employee role updated successfully.');
+            mainMenu(inquirer);
+          });
+        }).catch(error => {
+          console.error('Error during the role update process:', error);
+          mainMenu(inquirer);
+        });
+      });
+    }).catch(error => {
+      console.error('Error during the employee selection process:', error);
+      mainMenu(inquirer);
+    });
+  });
+}
 
