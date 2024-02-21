@@ -35,31 +35,43 @@ function mainMenu(inquirer) {
         'Add a role',
         'Add an employee',
         'Update an employee role',
+        'Delete a department', // Newly added option
+        'Delete a role',       // Newly added option
+        'Delete an employee',  // Newly added option
         'Exit'
       ],
     }
   ]).then((answers) => {
     switch(answers.action) {
       case 'View all departments':
-        viewAllDepartments(inquirer); // Pass inquirer here
+        viewAllDepartments(inquirer);
         break;
       case 'View all roles':
-        viewAllRoles(inquirer); // Pass inquirer here
+        viewAllRoles(inquirer);
         break;
       case 'View all employees':
-        viewAllEmployees(inquirer); // Pass inquirer here
+        viewAllEmployees(inquirer);
         break;
       case 'Add a department':
-        addDepartment(inquirer); // Already correct
+        addDepartment(inquirer);
         break;
       case 'Add a role':
-        addRole(inquirer); // Already correct
+        addRole(inquirer);
         break;
       case 'Add an employee':
-        addEmployee(inquirer); // Already correct
+        addEmployee(inquirer);
         break;
       case 'Update an employee role':
-        updateEmployeeRole(inquirer); // Already correct
+        updateEmployeeRole(inquirer);
+        break;
+      case 'Delete a department': // Handle deletion of a department
+        deleteDepartment(inquirer);
+        break;
+      case 'Delete a role': // Handle deletion of a role
+        deleteRole(inquirer);
+        break;
+      case 'Delete an employee': // Handle deletion of an employee
+        deleteEmployee(inquirer);
         break;
       case 'Exit':
         console.log('Exiting the application.');
@@ -67,7 +79,7 @@ function mainMenu(inquirer) {
         break;
       default:
         console.error('Invalid option selected.');
-        mainMenu(inquirer); // Ensure inquirer is passed back for retries
+        mainMenu(inquirer); // Show the menu again for invalid options
     }
   }).catch(error => {
     console.error('Error:', error);
@@ -308,3 +320,86 @@ function updateEmployeeRole(inquirer) {
   });
 }
 
+function deleteDepartment(inquirer) {
+  connection.query('SELECT id, name FROM department', (err, departments) => {
+    if (err) throw err;
+
+    inquirer.prompt([
+      {
+        type: 'list',
+        name: 'departmentId',
+        message: 'Which department would you like to delete?',
+        choices: departments.map(department => ({
+          name: department.name,
+          value: department.id
+        }))
+      }
+    ]).then(answer => {
+      const query = 'DELETE FROM department WHERE id = ?';
+      connection.query(query, [answer.departmentId], (err, res) => {
+        if (err) {
+          console.error('Error deleting department:', err);
+          return mainMenu(inquirer);
+        }
+        console.log('Department deleted successfully.');
+        mainMenu(inquirer);
+      });
+    });
+  });
+}
+
+function deleteRole(inquirer) {
+  connection.query('SELECT id, title FROM role', (err, roles) => {
+    if (err) throw err;
+
+    inquirer.prompt([
+      {
+        type: 'list',
+        name: 'roleId',
+        message: 'Which role would you like to delete?',
+        choices: roles.map(role => ({
+          name: role.title,
+          value: role.id
+        }))
+      }
+    ]).then(answer => {
+      const query = 'DELETE FROM role WHERE id = ?';
+      connection.query(query, [answer.roleId], (err, res) => {
+        if (err) {
+          console.error('Error deleting role:', err);
+          return mainMenu(inquirer);
+        }
+        console.log('Role deleted successfully.');
+        mainMenu(inquirer);
+      });
+    });
+  });
+}
+
+function deleteEmployee(inquirer) {
+  connection.query('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee', (err, employees) => {
+    if (err) throw err;
+
+    inquirer.prompt([
+      {
+        type: 'list',
+        name: 'employeeId',
+        message: 'Which employee would you like to delete?',
+        choices: employees.map(employee => ({
+          name: employee.name,
+          value: employee.id
+        }))
+      }
+    ]).then(answer => {
+      const query = 'DELETE FROM employee WHERE id = ?';
+      connection.query(query, [answer.employeeId], (err, res) => {
+        if (err) {
+          console.error('Error deleting employee:', err);
+          return mainMenu(inquirer);
+        }
+        console.log('Employee deleted successfully.');
+        mainMenu(inquirer);
+      });
+    });
+  });
+}
