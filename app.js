@@ -175,43 +175,71 @@ function addRole(inquirer) {
 }
 
 
-function addEmployee() {
-  // Get roles for the choices
-  connection.query('SELECT * FROM role', (err, roles) => {
-    if (err) throw err;
+function addEmployee(inquirer) {
+  // Parallel queries to fetch roles and employees for the manager selection
+  const fetchRolesQuery = 'SELECT id, title FROM role';
+  const fetchManagersQuery = 'SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee WHERE manager_id IS NULL';
 
-    // Assuming you have roles to choose from
-    inquirer.prompt([
-      {
-        type: 'input',
-        name: 'firstName',
-        message: "What is the employee's first name?"
-      },
-      {
-        type: 'input',
-        name: 'lastName',
-        message: "What is the employee's last name?"
-      },
-      {
-        type: 'list',
-        name: 'roleId',
-        message: "What is the employee's role?",
-        choices: roles.map(role => ({
-          name: role.title,
-          value: role.id
-        }))
-      },
-     
-    ]).then(answer => {
-      const query = 'INSERT INTO employee (first_name, last_name, role_id) VALUES (?, ?, ?)';
-      connection.query(query, [answer.firstName, answer.lastName, answer.roleId], (err, res) => {
-        if (err) throw err;
-        console.log(`Employee ${answer.firstName} ${answer.lastName} added successfully.`);
-        mainMenu();
+  connection.query(fetchRolesQuery, (err, roles) => {
+    if (err) {
+      console.error('Error fetching roles:', err);
+      return mainMenu(inquirer); // Return to the main menu if an error occurs
+    }
+
+    connection.query(fetchManagersQuery, (err, managers) => {
+      if (err) {
+        console.error('Error fetching managers:', err);
+        return mainMenu(inquirer); // Return to the main menu if an error occurs
+      }
+
+      inquirer.prompt([
+        {
+          type: 'input',
+          name: 'firstName',
+          message: "What is the employee's first name?"
+        },
+        {
+          type: 'input',
+          name: 'lastName',
+          message: "What is the employee's last name?"
+        },
+        {
+          type: 'list',
+          name: 'roleId',
+          message: "What is the employee's role?",
+          choices: roles.map(role => ({
+            name: role.title,
+            value: role.id
+          }))
+        },
+        {
+          type: 'list',
+          name: 'managerId',
+          message: "Who is the employee's manager?",
+          choices: [
+            {name: 'None', value: null},
+            ...managers.map(manager => ({
+              name: manager.name,
+              value: manager.id
+            }))
+          ]
+        }
+      ]).then(answer => {
+        const query = 'INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)';
+        connection.query(query, [answer.firstName, answer.lastName, answer.roleId, answer.managerId], (err, res) => {
+          if (err) {
+            console.error('Error adding employee:', err);
+            return mainMenu(inquirer); // Return to the main menu if an error occurs
+          }
+          console.log(`Employee ${answer.firstName} ${answer.lastName} added successfully.`);
+          mainMenu(inquirer);
+        });
+      }).catch(error => {
+        console.error('Error during the employee addition process:', error);
+        mainMenu(inquirer);
       });
-    }).catch(error => {
-      console.error('Error adding employee:', error);
     });
   });
 }
+
 
