@@ -129,10 +129,13 @@ function addDepartment() {
   });
 }
 
-function addRole() {
-  // First, get departments to allow user to choose one for the new role
-  connection.query('SELECT * FROM department', (err, departments) => {
-    if (err) throw err;
+function addRole(inquirer) {
+  // Fetch departments to let the user choose one for the new role
+  connection.query('SELECT id, name FROM department', (err, departments) => {
+    if (err) {
+      console.error('Error fetching departments:', err);
+      return mainMenu(inquirer); // Return to the main menu if an error occurs
+    }
     
     inquirer.prompt([
       {
@@ -157,15 +160,20 @@ function addRole() {
     ]).then(answer => {
       const query = 'INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)';
       connection.query(query, [answer.title, answer.salary, answer.departmentId], (err, res) => {
-        if (err) throw err;
+        if (err) {
+          console.error('Error adding role:', err);
+          return mainMenu(inquirer); // Return to the main menu if an error occurs
+        }
         console.log(`Role ${answer.title} added successfully.`);
-        mainMenu();
+        mainMenu(inquirer);
       });
     }).catch(error => {
-      console.error('Error adding role:', error);
+      console.error('Error during the role addition process:', error);
+      mainMenu(inquirer);
     });
   });
 }
+
 
 function addEmployee() {
   // Get roles for the choices
